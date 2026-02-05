@@ -16,7 +16,7 @@ export class CoursesService {
 
     const cached = await this.redis.get(key);
     if (cached) {
-      console.log('CACHE HITsssss');
+      console.log('CACHE HITsssssss');
       return JSON.parse(cached);
     }
 
