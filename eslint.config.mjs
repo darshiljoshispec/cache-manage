@@ -1,43 +1,25 @@
-// @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import globals from 'globals';
+import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
+export default [
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['dist/**', 'node_modules/**'],
   },
 
-  // keep base JS recommended rules
-  eslint.configs.recommended,
-
-  // ❌ REMOVE TS recommendedTypeChecked rules (this is what triggers all errors)
-  // ...tseslint.configs.recommendedTypeChecked,
-
-  // keep prettier integration
-  eslintPluginPrettierRecommended,
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
 
   {
+    files: ['src/**/*.ts'],
     languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
+      parser: tseslint.parser,
       parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+        project: './tsconfig.json',
       },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
-
-  // explicitly disable any TS rules that still load
-  {
-    rules: {
-      // disable *all* TS rules by wildcard:
-      // NOTE: flat config supports glob-like matching
-      '@typescript-eslint/*': 'off',
-    },
-  }
-);
+];
