@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Global()
@@ -6,10 +7,11 @@ import Redis from 'ioredis';
   providers: [
     {
       provide: 'REDIS',
-      useFactory: () => {
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
         const redis = new Redis({
-          host: 'localhost',
-          port: 6379,
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
         });
 
         redis.on('connect', () => {
