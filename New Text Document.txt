@@ -1,0 +1,83 @@
+docker compose up -d
+
+docker exec -it nest-redis redis-cli
+keys *
+
+
+first call crate api 
+then call get first tiome db hit second time hit cache
+
+after update cache clean and db hit 
+
+Next upgrades you can add (very useful for POC → real app)
+1) Reusable Cache Helper (no duplicate code)
+
+Create cache.service.ts:
+
+import { Inject, Injectable } from '@nestjs/common';
+import Redis from 'ioredis';
+
+@Injectable()
+export class CacheService {
+  constructor(@Inject('REDIS') private redis: Redis) {}
+
+  async getOrSet<T>(
+    key: string,
+    cb: () => Promise<T>,
+    ttlSeconds = 120,
+  ): Promise<T> {
+    const cached = await this.redis.get(key);
+    if (cached) return JSON.parse(cached);
+
+    const fresh = await cb();
+    await this.redis.set(key, JSON.stringify(fresh), 'EX', ttlSeconds);
+    return fresh;
+  }
+
+  async del(key: string) {
+    await this.redis.del(key);
+  }
+}
+
+
+Use in service:
+
+return this.cache.getOrSet(
+  `courses:${id}`,
+  () => this.model.findById(id).lean(),
+  300,
+);
+
+2) Key naming convention (important in big apps)
+entity:identifier:params
+
+courses:all
+courses:65fabc
+courses:list:page=1
+users:42:courses
+
+3) Auto clear pattern
+
+When you update a course:
+
+await Promise.all([
+  this.cache.del(`courses:${id}`),
+  this.cache.del('courses:all'),
+]);
+
+4) Verify TTL live
+ttl courses:all
+
+5) This pattern works perfectly with:
+
+Microservices
+
+API Gateway
+
+Prisma / TypeORM / Mongoose
+
+Rate limiting
+
+Session storage
+
+Distributed locks
